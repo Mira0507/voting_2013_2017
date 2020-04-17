@@ -66,7 +66,7 @@ nation_plotting <- function(df, ycol, title) {
                 ylab("% of Total Population") +
                 xlab("Ethnic Group") + 
                 ggtitle(title) + 
-                theme(legend.title = element_blank(), axis.text.x=element_blank()) 
+                theme(legend.title = element_blank(), axis.text.x=element_blank())
 }
 
 # plotting for entire country
