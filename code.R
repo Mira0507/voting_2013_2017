@@ -39,7 +39,7 @@ draw_map <- function(df, tit, leg, clr) {
 
 # map_total_pop = total population map over the country
 map_total_pop <- draw_map(ns_pop1, 
-                          "State Population Estimate (2013-2017): Population",
+                          "State Population Estimate (2013-2017)",
                           "Population", 1)
 map_proportion_pop <- draw_map(ns_pop3, "State Population Estimate (2013-2017): Proportion",
                                "Proportion (% of Total Population)",
@@ -74,8 +74,9 @@ nation_plot_adult <- nation_plotting(ns3, ns3$Percent_ADU, "Adult (18 or older) 
         geom_hline(yintercept = ns2$Percent_ADU[1], size = 1)
 nation_plot_citizen <- nation_plotting(ns3, ns3$Percent_CIT, "US Citizen in the US") +
         geom_hline(yintercept = ns2$Percent_CIT[1], size = 1)
-nation_plot_ad_cit <- nation_plotting(ns3, ns3$Percent_CVAP, "Adult US Citizen in the US") +
+nation_plot_ad_cit <- nation_plotting(ns3, ns3$Percent_CVAP, "Adult (18 or older) US Citizen in the US") +
         geom_hline(yintercept = ns2$Percent_CVAP[1], size = 1)
+
 
 # Prep for getting proportion of adult/citizen/adult&citizen in each state
 ns4 <- ns2 %>% filter(GEONAME != "United States", LNTITLE == "Total") 
@@ -104,3 +105,49 @@ map_total_ADUCIT <- draw_map(ns_ADUCIT_US,
                              "US Adult Citizen Population Estimate (2013-2017)", 
                              "Population)", 
                              1)
+
+# data cleaning and tables 
+library(formattable)
+ns5 <- ns3 %>% 
+        transmute(Ethnic_Group = LNTITLE, Percent_of_Population = Percent_CVAP) %>% 
+        arrange(desc(Percent_of_Population))
+adult_us_citizen_table <- formattable(ns5, 
+                                      list(Percent_of_Population = color_tile("lightblue", "lightpink")))
+ns_pop4 <- ns_pop1 %>% 
+        arrange(desc(value)) %>% 
+        transmute(States = toupper(region), Population = value)
+
+pop_summary <- data.frame(Top_5_States = ns_pop4$States[1:5], 
+                          Top_5_Population = ns_pop4$Population[1:5],
+                          Bottom_5_States = ns_pop4$States[48:52],
+                          Bottom_5_Population = ns_pop4$Population[48:52])
+
+pop_table <- formattable(pop_summary, 
+                         list(Top_5_Population = color_tile("transparent", "#CCCC00"),
+                              Bottom_5_Population = color_tile("transparent", "#999900")))
+ns_ADUCIT1 <- ns_ADUCIT %>% 
+        arrange(desc(value)) %>%
+        transmute(States = toupper(region), Percent_of_State_Population = value) %>% 
+        filter(States != "PUERTO RICO")
+
+ns_adult_prop_summary<- data.frame(Top_5_States = ns_ADUCIT1$States[1:5],
+                                   Top_5_Proportion = ns_ADUCIT1$Percent_of_State_Population[1:5],
+                                   Bottom_5_States = ns_ADUCIT1$States[47:51],
+                                   Bottom_5_Proportion = ns_ADUCIT1$Percent_of_State_Population[47:51])
+ns_adult_prop_table <- formattable(ns_adult_prop_summary,
+                                   list(Top_5_Proportion = color_tile("transparent", "#FFCC00"),
+                                        Bottom_5_Proportion = color_tile("transparent", "#FFCC99")))
+
+# asian population map
+asian <- c("Asian Alone", "Asian and White")
+ns6 <- ns %>%
+        filter(GEONAME != "United States", LNTITLE %in% asian) 
+ns7 <- ns6 %>% 
+        group_by(GEONAME) %>%
+        summarize(Asian_Population = sum(TOT_EST)) %>% 
+        transmute(region = tolower(GEONAME), value = Asian_Population)
+
+asian_pop_map <- draw_map(ns7, 
+                          "Asian Population Estimate (2013-2017)", 
+                          "Population", 
+                          1)
