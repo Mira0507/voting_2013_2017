@@ -71,11 +71,11 @@ nation_plotting <- function(df, ycol, title) {
 
 # plotting for entire country
 nation_plot_adult <- nation_plotting(ns3, ns3$Percent_ADU, "Adult (18 or older) in the US") +
-        geom_hline(yintercept = ns2$Percent_ADU[1])
+        geom_hline(yintercept = ns2$Percent_ADU[1], size = 1)
 nation_plot_citizen <- nation_plotting(ns3, ns3$Percent_CIT, "US Citizen in the US") +
-        geom_hline(yintercept = ns2$Percent_CIT[1])
+        geom_hline(yintercept = ns2$Percent_CIT[1], size = 1)
 nation_plot_ad_cit <- nation_plotting(ns3, ns3$Percent_CVAP, "Adult US Citizen in the US") +
-        geom_hline(yintercept = ns2$Percent_CVAP[1])
+        geom_hline(yintercept = ns2$Percent_CVAP[1], size = 1)
 
 # Prep for getting proportion of adult/citizen/adult&citizen in each state
 ns4 <- ns2 %>% filter(GEONAME != "United States", LNTITLE == "Total") 
