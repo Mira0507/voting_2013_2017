@@ -63,7 +63,7 @@ library(ggplot2)
 nation_plotting <- function(df, ycol, title) {
         ggplot(df, aes(x = LNTITLE, y = ycol, fill = LNTITLE)) +
                 geom_col(aes(color = LNTITLE)) + 
-                ylab("% of Total Population") +
+                ylab("% of Each Population") +
                 xlab("Ethnic Group") + 
                 ggtitle(title) + 
                 theme(legend.title = element_blank(), axis.text.x=element_blank())
@@ -140,7 +140,7 @@ ns_adult_prop_table <- formattable(ns_adult_prop_summary,
 
 # asian population map
 asian <- c("Asian Alone", "Asian and White")
-ns6 <- ns %>%
+ns6 <- ns2 %>%
         filter(GEONAME != "United States", LNTITLE %in% asian) 
 ns7 <- ns6 %>% 
         group_by(GEONAME) %>%
@@ -151,3 +151,34 @@ asian_pop_map <- draw_map(ns7,
                           "Asian Population Estimate (2013-2017)", 
                           "Population", 
                           1)
+
+ns8 <- ns4 %>% 
+        mutate(GEONAME = tolower(GEONAME)) %>% 
+        inner_join(ns7, by = c("GEONAME" = "region")) %>% 
+        rename(Asian_Population = value) %>% 
+        mutate(Asian_Percent = Asian_Population / TOT_EST * 100)
+
+ns9 <- ns6 %>% 
+        group_by(GEONAME) %>%
+        summarize(Asian_Ault_Population = sum(CVAP_EST)) %>% 
+        mutate(GEONAME = tolower(GEONAME)) %>% 
+        inner_join(ns8, by = "GEONAME") %>% 
+        mutate(Percent_Asian_Adult = Asian_Ault_Population / CVAP_EST * 100)
+
+ns_asian_percent <- ns9 %>%
+        transmute(region = GEONAME, value = Asian_Percent)
+ns_asian_adult_percent <- ns9 %>% 
+        transmute(region = GEONAME, value = Percent_Asian_Adult)
+
+asian_percent_map <- draw_map(ns_asian_percent, 
+                          "Asian Proportion Estimate (2013-2017)", 
+                          "Proportion (% of State Population", 
+                          1)
+
+asian_adult_percent_map <- draw_map(ns_asian_percent, 
+                              "Asian Proportion Estimate (2013-2017)", 
+                              "Proportion (% of State Population", 
+                              9)
+
+ns_asian_percent1 <- ns_asian_percent %>%
+        arrange(desc(value))
