@@ -54,7 +54,7 @@ ns2 <- ns1 %>% mutate(Percent_ADU = ADU_EST / TOT_EST * 100,
                       Percent_CIT = CIT_EST / TOT_EST * 100,
                       Percent_CVAP = CVAP_EST / TOT_EST * 100)
 ns3 <- ns2 %>%
-        filter(LNTITLE != "Total", GEONAME == "United States")
+        filter(LNTITLE != "Total", GEONAME == "United States", LNTITLE != "Not Hispanic or Latino")
 
 
 library(ggplot2)
@@ -75,7 +75,8 @@ nation_plot_adult <- nation_plotting(ns3, ns3$Percent_ADU, "Adult (18 or older) 
 nation_plot_citizen <- nation_plotting(ns3, ns3$Percent_CIT, "US Citizen in the US") +
         geom_hline(yintercept = ns2$Percent_CIT[1], size = 1)
 nation_plot_ad_cit <- nation_plotting(ns3, ns3$Percent_CVAP, "Adult (18 or older) US Citizen in the US") +
-        geom_hline(yintercept = ns2$Percent_CVAP[1], size = 1)
+        geom_hline(yintercept = ns2$Percent_CVAP[1], size = 1) + 
+        theme(panel.background = element_rect(fill = "white"))
 
 
 # Prep for getting proportion of adult/citizen/adult&citizen in each state
