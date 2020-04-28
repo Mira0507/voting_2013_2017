@@ -110,7 +110,7 @@ map_total_ADUCIT <- draw_map(ns_ADUCIT_US,
 # data cleaning and tables 
 library(formattable)
 ns5 <- ns3 %>% 
-        transmute(Ethnic_Group = LNTITLE, Percent_of_Population = Percent_CVAP) %>% 
+        transmute(Ethnic_Group = LNTITLE, Percent_of_Population = round(Percent_CVAP, digits = 1)) %>% 
         arrange(desc(Percent_of_Population))
 adult_us_citizen_table <- formattable(ns5, 
                                       list(Percent_of_Population = color_tile("lightblue", "lightpink")))
