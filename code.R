@@ -1,6 +1,8 @@
 library(tidyverse)
 library(stringr)
-
+library(ggplot2)
+library(ggrepel)
+library(formattable)
 h <- head
 s <- summary
 g <- glimpse
@@ -41,9 +43,6 @@ draw_map <- function(df, tit, leg, clr) {
 map_total_pop <- draw_map(ns_pop1, 
                           "State Population Estimate (2013-2017)",
                           "Population", 1)
-map_proportion_pop <- draw_map(ns_pop3, "State Population Estimate (2013-2017): Proportion",
-                               "Proportion (% of Total Population)",
-                               1)
 
 # TOT = total
 # ADU = adult (18 or older)
@@ -56,130 +55,158 @@ ns2 <- ns1 %>% mutate(Percent_ADU = ADU_EST / TOT_EST * 100,
 ns3 <- ns2 %>%
         filter(LNTITLE != "Total", GEONAME == "United States", LNTITLE != "Not Hispanic or Latino")
 
-
-library(ggplot2)
-
-# nation_plotting = a function for plotting 
-nation_plotting <- function(df, ycol, title) {
-        ggplot(df, aes(x = LNTITLE, y = ycol, fill = LNTITLE)) +
-                geom_col(aes(color = LNTITLE)) + 
-                ylab("% of Each Population") +
-                xlab("Ethnic Group") + 
-                ggtitle(title) + 
-                theme(legend.title = element_blank(), axis.text.x=element_blank())
-}
-
-# plotting for entire country
-nation_plot_adult <- nation_plotting(ns3, ns3$Percent_ADU, "Adult (18 or older) in the US") +
-        geom_hline(yintercept = ns2$Percent_ADU[1], size = 1)
-nation_plot_citizen <- nation_plotting(ns3, ns3$Percent_CIT, "US Citizen in the US") +
-        geom_hline(yintercept = ns2$Percent_CIT[1], size = 1)
-nation_plot_ad_cit <- nation_plotting(ns3, ns3$Percent_CVAP, "Adult (18 or older) US Citizen in the US") +
-        geom_hline(yintercept = ns2$Percent_CVAP[1], size = 1) + 
-        theme(panel.background = element_rect(fill = "white"))
+# data cleaning for plotting demographics
+ns4 <- ns3 %>%
+        mutate(Percent_of_Total = round(TOT_EST / sum(TOT_EST) * 100, digits = 1),
+               Percent_of_Voter_Total = round(CVAP_EST / sum(TOT_EST) * 100, digits = 1),
+               Percent_of_Adult = round(CVAP_EST / ADU_EST * 100, digits = 1))
 
 
-# Prep for getting proportion of adult/citizen/adult&citizen in each state
-ns4 <- ns2 %>% filter(GEONAME != "United States", LNTITLE == "Total") 
+ns_pop4 <- ns4 %>%
+        select(GEONAME, LNTITLE, TOT_EST:CVAP_EST) %>% 
+        rename(Race = LNTITLE, 
+               Total = TOT_EST,
+               Adult = ADU_EST,
+               Citizen = CIT_EST,
+               Adult_Citizen = CVAP_EST) 
 
-# data cleaning and mapping for adult proprotion
-ns_ADU <- mapping_table(ns4, ns4$Percent_ADU)
-map_state_adu <- draw_map(ns_ADU, 
-                          "Adult Proportion Estimate (2013-2017)",
-                          "Proportion (% of State Population)", 
-                          1)
-# data cleaning and mapping for citizen proportion
-ns_CIT <- mapping_table(ns4, ns4$Percent_CIT)
-map_state_cit <- draw_map(ns_CIT, 
-                          "US Citizen Proportion Estimate (2013-2017)", 
-                          "Proportion (% of State Population)", 
-                          1)
+ns_pop5 <- gather(ns_pop4, Population_Category, Population, -c(GEONAME, Race))
+ns_pop6 <- ns_pop5 %>%
+        filter(Population_Category != "Citizen")
 
-# data cleaning and mapping for adult citizen 
-ns_ADUCIT <- mapping_table(ns4, ns4$Percent_CVAP)
-map_state_ADUCIT <- draw_map(ns_ADUCIT, 
-                             "US Adult Citizen Proportion Estimate (2013-2017)", 
-                             "Proportion (% of State Population)", 
-                             1)
-ns_ADUCIT_US <- mapping_table(ns4, ns4$CVAP_EST)
-map_total_ADUCIT <- draw_map(ns_ADUCIT_US, 
-                             "US Adult Citizen Population Estimate (2013-2017)", 
-                             "Population)", 
-                             1)
 
-# data cleaning and tables 
-library(formattable)
-ns5 <- ns3 %>% 
-        transmute(Ethnic_Group = LNTITLE, Percent_of_Population = round(Percent_CVAP, digits = 1)) %>% 
-        arrange(desc(Percent_of_Population))
-adult_us_citizen_table <- formattable(ns5, 
-                                      list(Percent_of_Population = color_tile("lightblue", "lightpink")))
-ns_pop4 <- ns_pop1 %>% 
-        arrange(desc(value)) %>% 
-        transmute(States = toupper(region), Population = value)
+ns_pop7 <- ns4 %>% 
+        select(GEONAME, LNTITLE, Percent_of_Total:Percent_of_Adult) %>%
+        rename(Race = LNTITLE, 
+               Race_Proportion_over_Total_Population = Percent_of_Total,
+               Adult_Citizen_Proportion_over_Total_Population = Percent_of_Voter_Total,
+               Adult_Citizen_Proportion_over_Adult_Population = Percent_of_Adult)
+ns_pop8 <- gather(ns_pop7, Proportion_Category, Proportion, -c(GEONAME, Race))
 
-pop_summary <- data.frame(Top_5_States = ns_pop4$States[1:5], 
-                          Top_5_Population = ns_pop4$Population[1:5],
-                          Bottom_5_States = ns_pop4$States[48:52],
-                          Bottom_5_Population = ns_pop4$Population[48:52])
 
-pop_table <- formattable(pop_summary, 
-                         list(Top_5_Population = color_tile("transparent", "#CCCC00"),
-                              Bottom_5_Population = color_tile("transparent", "#999900")))
-ns_ADUCIT1 <- ns_ADUCIT %>% 
-        arrange(desc(value)) %>%
-        transmute(States = toupper(region), Percent_of_State_Population = value) %>% 
-        filter(States != "PUERTO RICO")
+# plots
+# nation_population_plot: Nation-wide population by race
+nation_population_plot <- ggplot(ns_pop6, aes(x = Race, y = Population, fill = Race)) + 
+        ggtitle("Population of Individual Race") + 
+        facet_grid(.~ Population_Category) + 
+        geom_bar(stat = "identity") + 
+        theme_grey() +
+        theme(axis.text.x=element_blank())
 
-ns_adult_prop_summary<- data.frame(Top_5_States = ns_ADUCIT1$States[1:5],
-                                   Top_5_Proportion = ns_ADUCIT1$Percent_of_State_Population[1:5],
-                                   Bottom_5_States = ns_ADUCIT1$States[47:51],
-                                   Bottom_5_Proportion = ns_ADUCIT1$Percent_of_State_Population[47:51])
-ns_adult_prop_table <- formattable(ns_adult_prop_summary,
-                                   list(Top_5_Proportion = color_tile("transparent", "#FFCC00"),
-                                        Bottom_5_Proportion = color_tile("transparent", "#FFCC99")))
+# nation_proportion_plot1: Proportion of individual race 
+nation_proportion_plot1 <- ggplot(ns_pop8[ns_pop8$Proportion_Category == "Race_Proportion_over_Total_Population", ],
+                                  aes(x = "", y = Proportion, fill = Race)) +
+        geom_bar(stat = "identity", width = 1, color = "white") +
+        xlab("Race Population / Total Population (%)") +
+        ylab(" ") +
+        ggtitle("Proportion of Individual Race (%)") + 
+        theme_grey() +
+        theme(axis.text.x=element_blank(), panel.background = element_blank(),
+              axis.text.y=element_blank(), axis.ticks = element_blank()) + 
+        coord_polar(theta = "y", start = 0) + 
+        geom_label_repel(aes(label = Proportion), position = position_stack(vjust = 0.5)) 
 
-# asian population map
+# Eligible voter proportion over Adult population in individual race
+nation_proportion_plot2 <- ggplot(ns_pop8[ns_pop8$Proportion_Category == "Adult_Citizen_Proportion_over_Adult_Population", ], 
+                                  aes(x = Race, y = Proportion, fill = Race)) +
+        ylab("Adult Citizen / Total Adult (%)") +
+        ggtitle("Adult Citizen over Total Adult (%) in Individual Race") +
+        geom_bar(stat = "identity") + 
+        theme_grey() +
+        theme(axis.text.x=element_blank())
+
+# Race proportion ranking table
+proportion_table_df <- data.frame(Race = ns_pop8[ns_pop8$Proportion_Category == "Race_Proportion_over_Total_Population", ]$Race,
+                                  Proportion = ns_pop8[ns_pop8$Proportion_Category == "Race_Proportion_over_Total_Population", ]$Proportion) %>%
+        arrange(desc(Proportion))
+proportion_table <- formattable(proportion_table_df,
+                                list(Proportion = color_tile("lightblue", "lightpink")))
+
+# data cleaning for asian statistics
 asian <- c("Asian Alone", "Asian and White")
-ns6 <- ns2 %>%
-        filter(GEONAME != "United States", LNTITLE %in% asian) 
-ns7 <- ns6 %>% 
+ns5 <- ns1 %>%
+        filter(GEONAME != "United States", LNTITLE != "Total", 
+               LNTITLE != "Not Hispanic or Latino", GEONAME != "Puerto Rico") 
+
+
+ns6 <- ns5 %>%
         group_by(GEONAME) %>%
-        summarize(Asian_Population = sum(TOT_EST)) %>% 
-        transmute(region = tolower(GEONAME), value = Asian_Population)
+        summarize(State_Population = sum(TOT_EST))
 
-asian_pop_map <- draw_map(ns7, 
-                          "Asian Population Estimate (2013-2017)", 
-                          "Population", 
-                          1)
+ns7 <- ns5 %>% 
+        left_join(ns6, by = "GEONAME") %>%
+        mutate(Race_Proportion = round(TOT_EST / State_Population * 100, digits = 1))
 
-ns8 <- ns4 %>% 
-        mutate(GEONAME = tolower(GEONAME)) %>% 
-        inner_join(ns7, by = c("GEONAME" = "region")) %>% 
-        rename(Asian_Population = value) %>% 
-        mutate(Asian_Percent = Asian_Population / TOT_EST * 100)
+# ns8: table for asian proportion by state
+ns8 <- ns7 %>%
+        filter(LNTITLE %in% asian) %>%
+        transmute(State = GEONAME, Race = LNTITLE, Asian_Proportion = Race_Proportion) %>%
+        group_by(State) %>%
+        summarize(Asian_Proportion = sum(Asian_Proportion)) 
 
-ns9 <- ns6 %>% 
+ns9 <- ns7 %>% 
+        filter(LNTITLE %in% asian) %>% 
+        select(GEONAME, LNTITLE, TOT_EST:Race_Proportion) %>% 
         group_by(GEONAME) %>%
-        summarize(Asian_Ault_Population = sum(CVAP_EST)) %>% 
-        mutate(GEONAME = tolower(GEONAME)) %>% 
-        inner_join(ns8, by = "GEONAME") %>% 
-        mutate(Percent_Asian_Adult = Asian_Ault_Population / CVAP_EST * 100)
+        summarize(Total_Asian_Population = sum(TOT_EST), 
+                  Asian_Adult_Population = sum(ADU_EST),
+                  Asian_Citizen_Population = sum(CIT_EST), 
+                  Asian_Adult_Citizen_Population = sum(CVAP_EST))
 
-ns_asian_percent <- ns9 %>%
-        transmute(region = GEONAME, value = Asian_Percent)
-ns_asian_adult_percent <- ns9 %>% 
-        transmute(region = GEONAME, value = Percent_Asian_Adult)
+# ns10: table for asian population and proportion by state
+ns10 <- ns9 %>% 
+        left_join(ns6, by = "GEONAME") %>%
+        rename(State = GEONAME) %>% 
+        left_join(ns8, by = "State") %>%
+        mutate(Asian_Voter_Proportion = 
+                       round(Asian_Adult_Citizen_Population / State_Population * 100, 
+                             digits = 1))
 
-asian_percent_map <- draw_map(ns_asian_percent, 
-                          "Asian Proportion Estimate (2013-2017)", 
-                          "Proportion (% of State Population", 
-                          1)
 
-asian_adult_percent_map <- draw_map(ns_asian_percent, 
-                              "Asian Proportion Estimate (2013-2017)", 
-                              "Proportion (% of State Population", 
-                              9)
 
-ns_asian_percent1 <- ns_asian_percent %>%
-        arrange(desc(value))
+# plotting for asian population by state
+total_pop_vs_asian_pop <- ggplot(ns10, 
+                                 aes(x = State_Population, y = Total_Asian_Population)) + 
+        geom_jitter(alpha = 0.6, size = 2) + 
+        geom_smooth(col = "blue", se = FALSE) + 
+        theme(panel.background = element_rect(fill = "white"), 
+              axis.ticks = element_line(color = "black"), 
+              axis.line = element_line(color = "black")) +
+        ggtitle("State Total Population vs State Asian Population") + 
+        xlab("State Total Population") +
+        ylab("State Asian Population")
+
+total_pop_vs_asian_pop_cor <- cor(ns10$State_Population, 
+                                         ns10$Total_Asian_Population)
+
+total_pop_vs_asian_proportion <- 
+        ggplot(ns10, 
+               aes(x = State_Population, y = Asian_Proportion)) + 
+        geom_jitter(alpha = 0.6, size = 2, col = "#FF0000") + 
+        geom_smooth(col = "blue", se = FALSE) + 
+        theme(panel.background = element_rect(fill = "white"), 
+              axis.ticks = element_line(color = "black"), 
+              axis.line = element_line(color = "black")) +
+        ggtitle("State Total Population vs State Asian Proportion") + 
+        xlab("State Total Population") +
+        ylab("State Asian Proportion (% of State Population)")
+
+# correlation
+total_pop_vs_asian_proportion_cor <- cor(ns10$State_Population, 
+                                         ns10$Asian_Proportion)
+
+
+total_pop_vs_asian_voter_proportion <- ggplot(ns10, 
+       aes(x = State_Population, 
+           y = Asian_Voter_Proportion)) + 
+        geom_jitter(alpha = 0.6, size = 2, col = "#006600") + 
+        geom_smooth(col = "blue", se = FALSE) + 
+        theme(panel.background = element_rect(fill = "white"), 
+              axis.ticks = element_line(color = "black"), 
+              axis.line = element_line(color = "black")) +
+        ggtitle("State Total Population vs Asian Adult Citizen Proportion") + 
+        xlab("State Total Population") +
+        ylab("State Asian Adult Proportion (% of State Population)")
+
+total_pop_vs_asian_voter_proportion_cor <- cor(ns10$State_Population, 
+                                               ns10$Asian_Voter_Proportion)
