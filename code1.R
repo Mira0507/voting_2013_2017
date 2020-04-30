@@ -52,7 +52,7 @@ nss2 <- nss %>%
         transmute(region = tolower(GEONAME), value = round(CVAP_EST / TOT_EST * 100, digits = 1))
 
 state_voter_proportion <- draw_map(nss2, 
-                                   "Proportion of Adult Citizen in Individual State (2013-2017)", 
+                                   "Proportion of Adult Citizen by State (2013-2017)", 
                                    "Proportion (% of Population)", 
                                    1)
 
@@ -73,7 +73,7 @@ pop_vs_voter_plot <- ggplot(nss4, aes(x = Population, y = Adult_Citizen_Proporti
         theme(panel.background = element_rect(fill = "white"), 
               axis.ticks = element_line(color = "black"), 
               axis.line = element_line(color = "black")) + 
-        ggtitle("Relationship between Population and Proportion of AdultCitizen\n in Individual State") +
+        ggtitle("Relationship between Population and Proportion of Adult Citizen by State") +
         ylab("Proportion of Adult Citizen (% of Population)") 
 
 pop_vs_voter_cor <- cor(nss4$Population, nss4$Adult_Citizen_Proportion)
@@ -159,7 +159,7 @@ elect_col_vs_elect_col_per_voters_plot <- ggplot(nss8,
         
 
 elec_col_vs_voter_plot <- ggplot(nss8, aes(x = Adult_Citizen_Population, y = Electoral_College)) + 
-        geom_point(size = 3, col = "#CC0033", alpha = 0.5) + 
+        geom_point(size = 3, col = "#9900CC", alpha = 0.5) + 
         geom_smooth(col = "blue", se = FALSE) + 
         theme(panel.background = element_rect(fill = "white"), 
               axis.ticks = element_line(color = "black"), 
