@@ -184,3 +184,5 @@ relative_electoral_votes <- data.frame(Top_States = nss9$State[1:10],
 relative_electoral_votes_table <- formattable(relative_electoral_votes,
                                               list(Top_Votes = color_tile("white", "paleturquoise"),
                                                    Bottom_Votes = color_tile("white", "mediumaquamarine")))
+rel_elec_col_vs_voter_cor <- cor(nss9$Adult_Citizen_Population,
+                                 nss9$Electoral_College_Per_Adult_Citizen_Population)
