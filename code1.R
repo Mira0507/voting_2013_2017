@@ -73,8 +73,8 @@ pop_vs_voter_plot <- ggplot(nss4, aes(x = Population, y = Adult_Citizen_Proporti
         theme(panel.background = element_rect(fill = "white"), 
               axis.ticks = element_line(color = "black"), 
               axis.line = element_line(color = "black")) + 
-        ggtitle("Relationship between Population and Proportion of Adult Citizen by State") +
-        ylab("Proportion of Adult Citizen (% of Population)") 
+        ggtitle("Relationship between Population and Proportion of Adult Citizens by State") +
+        ylab("Proportion of Adult Citizens (% of Population)") 
 
 pop_vs_voter_cor <- cor(nss4$Population, nss4$Adult_Citizen_Proportion)
 
