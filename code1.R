@@ -153,9 +153,9 @@ elect_col_vs_elect_col_per_voters_plot <- ggplot(nss8,
         theme(panel.background = element_rect(fill = "white"), 
               axis.ticks = element_line(color = "black"), 
               axis.line = element_line(color = "black")) + 
-        ggtitle("Relationship between Population of Adult Citizen \n and Relative Number of Electoral College by State") +
-        xlab("Number of Adult Citizen") +
-        ylab("Electoral Votes \n(per Million Adult Citizen)") 
+        ggtitle("Relationship between Adult Citizen Population \n and Relative Number of Electoral Votes by State") +
+        xlab("Number of Adult Citizens") +
+        ylab("Electoral Votes \n(per Million Adult Citizens)") 
         
 
 elec_col_vs_voter_plot <- ggplot(nss8, aes(x = Adult_Citizen_Population, y = Electoral_College)) + 
@@ -164,8 +164,8 @@ elec_col_vs_voter_plot <- ggplot(nss8, aes(x = Adult_Citizen_Population, y = Ele
         theme(panel.background = element_rect(fill = "white"), 
               axis.ticks = element_line(color = "black"), 
               axis.line = element_line(color = "black")) + 
-        ggtitle("Relationship between Population of Adult Citizen \n and Absolute Number of Electoral College by State") +
-        xlab("Number of Adult Citizen") +
+        ggtitle("Relationship between Adult Citizen Population \n and Absolute Number of Electoral Votes by State") +
+        xlab("Number of Adult Citizens") +
         ylab("Electoral Votes") 
 
 # correlation btw adult citizen and electoral college = 0.997
