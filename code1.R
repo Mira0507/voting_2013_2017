@@ -170,3 +170,17 @@ elec_col_vs_voter_plot <- ggplot(nss8, aes(x = Adult_Citizen_Population, y = Ele
 
 # correlation btw adult citizen and electoral college = 0.997
 elec_col_vs_voter_cor <- cor(nss8$Adult_Citizen_Population, nss8$Electoral_College)
+
+nss9 <- nss8 %>% 
+        arrange(desc(Electoral_College_Per_Adult_Citizen_Population)) %>%
+        mutate(State = toupper(State))
+
+# table for relative number of electoral votes
+relative_electoral_votes <- data.frame(Top_States = nss9$State[1:10],
+                                       Top_Votes = nss9$Electoral_College_Per_Adult_Citizen_Population[1:10],
+                                       Bottom_States = nss9$State[42:51],
+                                       Bottom_Votes = nss9$Electoral_College_Per_Adult_Citizen_Population[42:51])
+
+relative_electoral_votes_table <- formattable(relative_electoral_votes,
+                                              list(Top_Votes = color_tile("white", "paleturquoise"),
+                                                   Bottom_Votes = color_tile("white", "mediumaquamarine")))
